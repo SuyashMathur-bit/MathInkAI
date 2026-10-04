@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MathInk.ai — AI-Powered Mathematical Smart Board</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- KaTeX for crisp mathematical notation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+  <!-- Main stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="M8 7h6"/>
+            <path d="M11 11h6"/>
+            <path d="m14 15 4 4"/>
+            <path d="m18 15-4 4"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1>MathInk<span class="gradient-text">.ai</span></h1>
+          <p class="subtitle">AI-Powered Mathematical Smart Board</p>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="status-badge" id="modelStatusBadge">
+          <span class="status-dot pulsing"></span>
+          <span id="modelStatusText">Connecting model...</span>
+        </div>
+        <button id="devModeToggleBtn" class="btn-ghost" title="Toggle Developer / Debug Mode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m18 16 4-4-4-4"/>
+            <path d="m6 8-4 4 4 4"/>
+            <path d="m14.5 4-5 16"/>
+          </svg>
+          <span>Dev Mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      <!-- Smart Board Canvas Card -->
+      <section class="board-section">
+        <div class="board-header">
+          <div class="board-title-group">
+            <span class="board-badge">DIGITAL SMART BOARD</span>
+            <span class="board-hint">Write your mathematical equation using mouse, stylus, or touch</span>
+          </div>
+
+          <div class="quick-examples-dropdown">
+            <label for="exampleSelector">Try Example:</label>
+            <select id="exampleSelector">
+              <option value="">-- Select Sample Equation --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="canvas-container" id="canvasContainer">
+          <canvas id="smartBoardCanvas"></canvas>
+          
+          <div class="canvas-watermark" id="canvasWatermark">
+            <div class="watermark-content">
+              <span class="watermark-math">x² + 5x + 6 = 0</span>
+              <span class="watermark-sub">Write your equation, or drag &amp; drop / paste (Ctrl+V) an image</span>
+            </div>
+          </div>
+
+          <div class="drop-overlay" id="dropOverlay">
+            <div class="drop-content">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <span>Drop handwritten math image to solve</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="board-toolbar">
+          <div class="tool-group">
+            <button id="penToolBtn" class="tool-btn active" title="Pen (Draw)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+              </svg>
+              <span>Pen</span>
+            </button>
+
+            <button id="eraserToolBtn" class="tool-btn" title="Eraser (Remove strokes)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/>
+                <path d="M22 21H7"/>
+                <path d="m5 11 9 9"/>
+              </svg>
+              <span>Eraser</span>
+            </button>
+
+            <div class="toolbar-separator"></div>
+
+            <button id="undoBtn" class="tool-btn" title="Undo last stroke" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 7v6h6"/>
+                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+              </svg>
+              <span>Undo</span>
+            </button>
+
+            <button id="redoBtn" class="tool-btn" title="Redo stroke" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 7v6h-6"/>
+                <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/>
+              </svg>
+              <span>Redo</span>
+            </button>
+
+            <button id="clearBtn" class="tool-btn tool-btn-danger" title="Clear board">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              </svg>
+              <span>Clear</span>
+            </button>
+
+            <div class="toolbar-separator"></div>
+
+            <button id="uploadImgBtn" class="tool-btn" title="Upload an image (PNG, JPG) or paste screenshot">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+              </svg>
+              <span>Upload Image</span>
+            </button>
+            <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+          </div>
+
+          <div class="stroke-metrics-preview">
+            <span id="strokeCounter">0 strokes</span>
+            <span class="metrics-dot">•</span>
+            <span id="pointCounter">0 points</span>
+          </div>
+
+          <div class="action-group">
+            <button id="solveBtn" class="btn-solve" title="Recognize and solve equation">
+              <svg class="sparkle-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+              </svg>
+              <span>✨ Solve</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Processing State Overlay / Indicator -->
+      <section class="processing-section" id="processingSection" style="display: none;">
+        <div class="processing-card">
+          <div class="pipeline-steps">
+            <div class="step-item" id="stepRead">
+              <div class="step-bullet"></div>
+              <span>Reading handwriting...</span>
+            </div>
+            <div class="step-item" id="stepRecognize">
+              <div class="step-bullet"></div>
+              <span>Recognizing mathematical expression...</span>
+            </div>
+            <div class="step-item" id="stepLatex">
+              <div class="step-bullet"></div>
+              <span>Generating LaTeX...</span>
+            </div>
+            <div class="step-item" id="stepSolve">
+              <div class="step-bullet"></div>
+              <span>Solving equation...</span>
+            </div>
+            <div class="step-item" id="stepReady">
+              <div class="step-bullet"></div>
+              <span>✓ Solution ready</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results Display Section -->
+      <section class="results-section" id="resultsSection" style="display: none;">
+        <!-- Recognized Equation Card -->
+        <div class="result-card equation-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-label">RECOGNIZED EQUATION</span>
+              <span class="expression-type-tag" id="expressionTypeTag">Linear Equation</span>
+            </div>
+            <button class="btn-icon" id="editLatexToggleBtn" title="Edit LaTeX">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+              </svg>
+              <span>Edit</span>
+            </button>
+          </div>
+
+          <div class="equation-display-area" id="equationRenderArea">
+            <!-- KaTeX rendered equation goes here -->
+          </div>
+
+          <!-- Optional LaTeX Editor -->
+          <div class="latex-editor-drawer" id="latexEditorDrawer" style="display: none;">
+            <div class="editor-input-row">
+              <input type="text" id="latexInput" class="latex-input" placeholder="e.g. x^2 + 5x + 6 = 0">
+              <button id="reSolveBtn" class="btn-secondary">Re-Solve</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mathematical Solution Card -->
+        <div class="result-card solution-card">
+          <div class="card-header">
+            <span class="card-label">MATHEMATICAL SOLUTION</span>
+            <span class="solution-status-tag" id="solutionStatusTag">Solved</span>
+          </div>
+
+          <div class="solution-display-area" id="solutionRenderArea">
+            <!-- Rendered solution -->
+          </div>
+
+          <!-- Step-by-Step Breakdown -->
+          <div class="steps-container" id="stepsContainer">
+            <h4 class="steps-title">Step-by-Step Solution</h4>
+            <div class="steps-list" id="stepsList">
+              <!-- Numbered step cards -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Developer / Debug Mode Panel -->
+      <section class="dev-panel" id="devPanel" style="display: none;">
+        <div class="dev-panel-header">
+          <div class="dev-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <span>Developer / Debug Inspector</span>
+          </div>
+          <span class="dev-tag">MODEL PIPELINE TELEMETRY</span>
+        </div>
+
+        <div class="dev-grid">
+          <div class="dev-item">
+            <span class="dev-k">Captured Strokes</span>
+            <span class="dev-v" id="devStrokes">--</span>
+          </div>
+          <div class="dev-item">
+            <span class="dev-k">Total Points</span>
+            <span class="dev-v" id="devPoints">--</span>
+          </div>
+          <div class="dev-item">
+            <span class="dev-k">Input Sequence Shape</span>
+            <span class="dev-v" id="devShape">--</span>
+          </div>
+          <div class="dev-item">
+            <span class="dev-k">Inference Latency</span>
+            <span class="dev-v" id="devLatency">--</span>
+          </div>
+          <div class="dev-item">
+            <span class="dev-k">Loaded Checkpoint</span>
+            <span class="dev-v" id="devCheckpoint">--</span>
+          </div>
+          <div class="dev-item">
+            <span class="dev-k">Expression Type</span>
+            <span class="dev-v" id="devExprType">--</span>
+          </div>
+        </div>
+
+        <div class="dev-block">
+          <span class="dev-k">Predicted Token Sequence:</span>
+          <pre class="dev-pre" id="devTokens">[--]</pre>
+        </div>
+
+        <div class="dev-block">
+          <span class="dev-k">Raw LaTeX String:</span>
+          <pre class="dev-pre" id="devRawLatex">--</pre>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>MathInk.ai • CNN + BiLSTM + CTC Mathematical Handwriting Recognition & Symbolic Engine</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

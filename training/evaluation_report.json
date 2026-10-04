@@ -1,0 +1,41 @@
+{
+  "samples_tested": 300,
+  "weights_evaluated": "c:\\Users\\Suyash\\Saved Games\\Math.ai\\model\\best_mathink_model.weights.h5",
+  "total_epochs_trained": 80,
+  "best_epoch": 71,
+  "best_val_loss": 24.7543,
+  "correct_tokens": 1450,
+  "total_actual_tokens": 3032,
+  "total_predicted_tokens": 1777,
+  "token_precision_pct": 81.6,
+  "token_recall_pct": 47.82,
+  "token_f1_score_pct": 60.3,
+  "position_level_accuracy_pct": 21.9,
+  "exact_sequence_matches": 11,
+  "exact_sequence_accuracy_pct": 3.67,
+  "normalized_edit_distance": 0.5485,
+  "sequence_similarity_pct": 45.15,
+  "progression_milestones": {
+    "initial_50_epochs_subsampled": {
+      "token_precision": 49.75,
+      "token_recall": 9.37,
+      "token_f1": 15.77,
+      "val_loss": 35.3293
+    },
+    "optimized_50_epochs": {
+      "token_precision": 76.05,
+      "token_recall": 25.66,
+      "token_f1": 38.37,
+      "val_loss": 27.3538
+    },
+    "fine_tuned_80_epochs": {
+      "token_precision": 81.6,
+      "token_recall": 47.82,
+      "token_f1": 60.3,
+      "position_accuracy": 21.9,
+      "exact_sequence_accuracy": 3.67,
+      "sequence_similarity": 45.15,
+      "val_loss": 24.7543
+    }
+  }
+}

@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Large Datasets (> 100MB exceeds GitHub limit)
+dataset/*.pkl
+dataset/*.zip
+dataset/*.tar.gz
+*.pkl.gz
+
+# Intermediate Training Checkpoints (Keep only final/best weights in model/)
+training/checkpoints/mathink_checkpoint_epoch_*.weights.h5
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Flask / Runtime logs
+*.log

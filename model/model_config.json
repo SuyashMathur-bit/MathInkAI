@@ -1,0 +1,12 @@
+{
+  "vocab_size": 518,
+  "pad_id": 0,
+  "unk_id": 1,
+  "blank_id": 517,
+  "max_length": 3150,
+  "max_label_length": 129,
+  "conv1d_filters": 64,
+  "conv1d_kernel": 5,
+  "pool_size": 2,
+  "lstm_units": 128
+}
