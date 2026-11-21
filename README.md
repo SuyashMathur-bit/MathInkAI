@@ -1,580 +1,149 @@
-# MathInk.ai — AI-Powered Mathematical Smart Board
+# MathInk.ai — Deep Learning Handwritten Math to LaTeX Recognizer
 
-MathInk.ai is an end-to-end mathematical handwriting recognition and symbolic reasoning system. It enables users to naturally write mathematical expressions on a digital smart board using a mouse, stylus, or touchscreen, and automatically recognizes the handwriting using a CNN + BiLSTM + CTC deep learning pipeline and solves the equation using symbolic mathematics.
+[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11-blue.svg)](https://www.python.org/)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange.svg)](https://tensorflow.org/)
+[![Keras](https://img.shields.io/badge/Keras-Deep%20Learning-red.svg)](https://keras.io/)
+[![Dataset](https://img.shields.io/badge/Dataset-CROHME%20(21k)-green.svg)](https://www.kaggle.com/datasets/suyashma/math-expression1)
 
----
-
-## Conceptual Pipeline
-
-```
-CROHME Processed Dataset
-        ↓
-LaTeX Tokenization (Regex)
-        ↓
-Vocabulary Creation (518 tokens, PAD=0, UNK=1, BLANK=517)
-        ↓
-Stroke → [x, y, pen] Sequence Representation
-        ↓
-Train / Validation Split (80 / 20)
-        ↓
-Padding + Length Preparation
-        ↓
-CTC Preparation (Conv1D + MaxPool1D downsampling // 2)
-        ↓
-Model: Conv1D(64, k=5) → MaxPool1D(2) → BiLSTM(128) → BiLSTM(128) → Dense(518, Softmax)
-        ↓
-Resumable CTC Training with Per-Epoch Checkpoints (1 to 50 Epochs)
-        ↓
-Inference Model
-        ↓
-Greedy CTC Decoding (deduplication & blank suppression)
-        ↓
-Predicted Tokens
-        ↓
-Tokens → LaTeX (`"".join(tokens)`)
-        ↓
-LaTeX → SymPy (`latex2sympy2` + `sympy`)
-        ↓
-solve_latex() / step_by_step_solution()
-        ↓
-Mathematical Solution (Roots, Step Cards, Educational Explanations)
-```
+MathInk.ai is an end-to-end deep learning system that recognizes online handwritten mathematical expressions and converts them into standardized **LaTeX** code using a hybrid **Conv1D + Bidirectional LSTM + CTC (Connectionist Temporal Classification)** architecture trained on the benchmark **CROHME** dataset (21,265 samples).
 
 ---
 
-## Project Structure
+## 📌 Architecture & Conceptual Pipeline
 
 ```
-Math.ai/
-├── MathInk_AI_Pipeline.ipynb           # Complete 85-cell Jupyter Notebook (for Kaggle / Colab)
-├── mathink_ai_pipeline.py              # Standalone Python notebook script (Epoch 71)
-├── mathink_ai.py                       # Modular MathInkRecognizer API (Online & Image)
-├── requirements.txt                    # Project dependencies
-├── .gitignore                          # Git ignore rules for dataset & checkpoints
+Online Handwritten Stroke Data [[x1, y1], [x2, y2], ...]
+                          │
+                          ▼
+        Stroke-to-Sequence Representation [x, y, pen_state]
+                          │
+                          ▼
+           Regex Tokenization & Vocabulary (518 Tokens)
+                          │
+                          ▼
+           Conv1D (64 filters, kernel=5) + MaxPool1D(2)
+                          │
+                          ▼
+           2x Bidirectional LSTM (128 units each)
+                          │
+                          ▼
+        Dense Projection (518 classes, Softmax Activation)
+                          │
+                          ▼
+               CTC Loss & Training Optimization
+                          │
+                          ▼
+        Greedy CTC Decoding (Blank Suppression & Deduplication)
+                          │
+                          ▼
+        Predicted LaTeX Token Sequence (e.g. x^2 + 5x + 6 = 0)
+```
+
+---
+
+## 🎯 Key Technical Highlights
+
+* **Temporal Representation of Handwriting:** In online handwriting recognition, mathematical formulas are captured as continuous trajectories of coordinates with pen-down/pen-up states `[x, y, pen_state]` rather than static 2D images, preserving crucial writing order and speed dynamics.
+* **Feature Extraction & Downsampling:** A 1D Convolutional layer (`Conv1D`, 64 filters, kernel size 5) extracts local temporal stroke features, followed by `MaxPool1D(2)` to downsample the sequence length by half for efficient CTC alignment.
+* **Bidirectional Sequence Modeling:** A 2-layer stacked `Bidirectional LSTM` (128 units each, 256 effective units per layer) captures forward and backward temporal context across multi-stroke mathematical expressions.
+* **Alignment-Free CTC Decoding:** Trained with Connectionist Temporal Classification (`ctc_batch_cost`) to map unaligned stroke sequences directly to LaTeX token sequences without requiring frame-level alignments.
+
+---
+
+## 📊 Evaluation & Benchmark Results
+
+The model was evaluated across 300 unseen validation samples from the CROHME validation split:
+
+| Metric | Validation Score | Technical Analysis |
+| :--- | :--- | :--- |
+| **Token Precision** | **81.60%** | High accuracy in recognizing individual mathematical symbols and numbers |
+| **Token Recall** | **47.82%** | Sensitivity across multi-token and nested mathematical sequences |
+| **Token F1-Score** | **60.30%** | Strong harmonic mean across token-level predictions |
+| **Validation Loss** | **24.75** | Best checkpoint convergence (Epoch 71) |
+| **Exact-Match Accuracy** | **3.67%** | Strict sequence-level equality across entire mathematical formulas |
+
+### 🔍 Technical Discussion: Token Precision vs. Exact Match
+* **Sequence Length Sensitivity:** In mathematical expression recognition, formulas frequently contain 15 to 30+ tokens. Exact-match accuracy requires **every single token in the sequence to be predicted with 100% precision**. If a 25-token formula has 24 correct tokens and 1 minor misclassification, the Token Precision is **96%**, but the Exact Match score is **0%**.
+* **1D Temporal vs. 2D Spatial Structure:** A 1D sequence architecture (Conv1D + BiLSTM + CTC) excels at sequential symbol transcription (achieving **81.6% Token Precision**). However, non-linear 2D mathematical structures (nested fractions, exponents, square roots, matrices) inherently benefit from 2D attention tree parsers (e.g., Tree-LSTM or WAP) to boost full-sequence exact matches.
+
+---
+
+## 📂 Dataset Details & Reproducibility
+
+* **Dataset:** Competition on Recognition of Online Handwritten Mathematical Expressions (**CROHME**)
+* **Samples:** 21,265 mathematical expressions
+* **Vocabulary:** 518 unique mathematical tokens (digits, variables, Greek letters, operators, structural symbols)
+* **Kaggle Source:** [suyashma/math-expression1 on Kaggle](https://www.kaggle.com/datasets/suyashma/math-expression1)
+
+> **Note on Dataset File:** The preprocessed dataset `processed_crohme.pkl` is ~196 MB, exceeding standard GitHub file limits. If cloning fresh, download `processed_crohme.pkl` directly from the [Kaggle Dataset Link](https://www.kaggle.com/datasets/suyashma/math-expression1) and place it into the `dataset/` directory.
+
+---
+
+## 📁 Repository Structure
+
+```
+MathInkAI/
 ├── dataset/
-│   └── processed_crohme.pkl            # CROHME dataset (21,265 samples)
+│   └── README.md                         # Dataset schema & Kaggle download link
 ├── model/
-│   ├── mathinkai_epoch_71.weights.h5   # Epoch 71 model weights
-│   ├── best_mathink_model.weights.h5   # Best validation-performing weights
-│   ├── vocabulary.pkl                  # 518 vocabulary tokens
-│   ├── token_to_id.pkl                 # Token to ID mapping
-│   ├── id_to_token.pkl                 # ID to Token mapping
-│   ├── model_config.json               # Architecture hyperparameters
-│   └── build_vocab.py                  # Vocabulary extraction script
-├── training/
-│   ├── train.py                        # Resumable training loop with checkpointing
-│   ├── evaluation.py                   # 300-sample validation evaluation
-│   ├── evaluation_report.json          # Metrics report
-│   └── checkpoints/                    # Epoch checkpoints (up to Epoch 80)
-│       ├── checkpoint_state.json       # Resumable training state
-│       ├── mathink_checkpoint_epoch_71.weights.h5
-│       └── best_mathink_model.weights.h5
-├── inference/
-│   ├── preprocessing.py                # Stroke normalization & tokenization
-│   ├── model_loader.py                 # Architecture builder & inference pipeline
-│   ├── decoding.py                     # Greedy CTC decode
-│   ├── latex.py                        # Tokens to LaTeX & expression validation
-│   └── solver.py                       # Step-by-step symbolic solver
-├── backend/
-│   └── app.py                          # Flask REST API server
-├── frontend/
-│   ├── index.html                      # Digital Smart Board interface
-│   ├── style.css                       # Responsive dark slate design
-│   └── app.js                          # Real-time stroke capture & KaTeX rendering
-├── run_app.bat                         # One-click Windows startup script
-└── README.md
+│   ├── best_mathink_model.weights.h5     # Best validation weights (Epoch 71)
+│   ├── vocabulary.pkl                   # 518 vocabulary tokens
+│   ├── token_to_id.pkl                  # Token-to-ID mapping
+│   ├── id_to_token.pkl                  # ID-to-Token mapping
+│   ├── model_config.json                # Model hyperparameters
+│   └── build_vocab.py                   # Vocabulary generation utility
+├── mathink_ai.py                        # Modular inference API (MathInkRecognizer)
+├── MathInk_AI_Pipeline.ipynb            # Complete end-to-end training & evaluation notebook
+├── mathink_ai_pipeline.py               # Standalone pipeline training script
+├── requirements.txt                     # Dependencies
+└── README.md                            # Project documentation
 ```
 
 ---
 
-## Resumable Training & Checkpoints
+## 🚀 How to Run Locally
 
-The training script automatically detects previously completed epochs and continues from the next epoch until reaching a total of 50 epochs:
-
-```powershell
-# Resume training automatically to 50 epochs
-py -3.11 training\train.py --epochs 50
-
-# Optional subset training for rapid iteration
-py -3.11 training\train.py --epochs 50 --max-samples 500
-
-# Force restart from epoch 1
-py -3.11 training\train.py --epochs 50 --force-restart
+### 1. Clone Repository
+```bash
+git clone https://github.com/SuyashMathur-bit/MathInkAI.git
+cd MathInkAI
 ```
 
-### Checkpoint State File (`training/checkpoints/checkpoint_state.json`)
-Saves:
-- `completed_epoch`
-- `best_epoch`
-- `best_val_loss`
-- `best_checkpoint_path`
-- Per-epoch history (`train_loss`, `val_loss`, `is_best`, `time_seconds`)
+### 2. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Run Inference with Pre-trained Weights
+```python
+from mathink_ai import MathInkRecognizer
+
+# Initialize recognizer with pre-trained weights
+recognizer = MathInkRecognizer(
+    weights_path="model/best_mathink_model.weights.h5",
+    vocab_path="model/vocabulary.pkl"
+)
+
+# Predict LaTeX from online stroke coordinate sequence
+# strokes: list of stroke arrays [[[x, y], ...], [[x, y], ...]]
+latex_output = recognizer.predict_strokes(sample_strokes)
+print(f"Predicted LaTeX: {latex_output}")
+```
+
+### 4. Run Notebook Pipeline
+Open `MathInk_AI_Pipeline.ipynb` in Jupyter Notebook, Google Colab, or Kaggle to explore the full data preprocessing, Conv1D-BiLSTM training, and CTC evaluation pipeline.
 
 ---
 
-## Validation Evaluation
+## 🛠 Technology Stack
 
-The model was evaluated on 300 validation samples matching the project methodology:
-
-```powershell
-py -3.11 training\evaluation.py --samples 300
-```
-
-### Benchmark Progression
-
-| Milestone | Token Precision | Token Recall | Token F1 | Exact Match | Notes |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Epoch 10** | - | - | - | 9.00% | Initial baseline |
-| **Epoch 20** | - | - | - | 37.67% | Intermediate checkpoint |
-| **Epoch 50** | 49.75% | 9.37% | 15.77% | 0.00% | Validation Loss: 60.1154 |
-| **Epoch 71 (Best)** | **81.60%** | **47.82%** | **60.30%** | **3.67%** | **Validation Loss: 24.7543** (Active Best Model) |
-
---- | :--- | :--- | :--- | :--- |
-| **Epoch 10** | 36.43% | 9.00% | — | Baseline early checkpoint |
-| **Epoch 20** | 59.98% | 37.67% | 83.67% | Intermediate notebook checkpoint |
-| **Epoch 50** | Evaluated | Evaluated | Evaluated | `best_mathink_model` selected at Epoch 48 (val loss: 60.1154) |
+* **Deep Learning Framework:** TensorFlow 2.x / Keras
+* **Neural Architecture:** Conv1D + Stacked Bidirectional LSTM + CTC Loss
+* **Language & Math Processing:** Python 3, NumPy, LaTeX Regex Tokenizer
+* **Environment:** Jupyter Notebook / Google Colab / Kaggle GPU
 
 ---
 
-## Running the Smart Board Application
+## 👤 Author
 
-### 1. Launch the Server
-Double-click `run_app.bat` or run:
-```powershell
-py -3.11 backend\app.py
-```
-Server runs at `http://localhost:5000`.
-
-### 2. Open in Browser
-Open `http://localhost:5000` in Google Chrome, Edge, or on any touchscreen/tablet.
-
-### 3. Features
-- **Canvas**: Natural writing with mouse, stylus (Surface Pen / Apple Pencil), or touchscreen.
-- **Stroke Capture**: Captures exact continuous sequences of `[x, y, pen]`.
-- **Tools**: Pen, Eraser, Undo, Redo, Clear Board.
-- **Try Example**: Dropdown to load sample equations from the CROHME validation set.
-- **Solve Button**: Prominent `✨ Solve` button with animated progressive feedback.
-- **LaTeX Display**: Beautiful KaTeX rendered mathematical equations.
-- **Mathematical Solution**: Real SymPy symbolic solver displaying roots, factorizations, and step cards.
-- **Developer Mode**: Real-time telemetry inspector (strokes, points, input shape, inference latency, raw token IDs, LaTeX string).
-
----
-
-# 🔄 Development Phases
-
-## Phase 1 — Dataset & Data Collection 📚
-
-The first phase focuses on building and preparing a dataset containing handwritten mathematical symbols and expressions.
-
-### Dataset Components
-
-* Digits: `0–9`
-* Mathematical operators: `+`, `−`, `×`, `÷`
-* Relational operators: `=`, `<`, `>`
-* Brackets and parentheses
-* Variables and alphabets
-* Mathematical notation
-
-### Data Preparation
-
-The collected samples are:
-
-1. Organized into classes
-2. Checked for invalid samples
-3. Resized to a standard resolution
-4. Normalized
-5. Converted into a suitable format for model training
-
----
-
-## Phase 2 — Image Preprocessing 🖼️
-
-Raw handwritten input cannot be directly provided to the model.
-
-The preprocessing pipeline prepares the handwriting for recognition.
-
-```text
-Raw Handwriting
-      ↓
-Grayscale Conversion
-      ↓
-Noise Removal
-      ↓
-Thresholding
-      ↓
-Cropping
-      ↓
-Resizing
-      ↓
-Normalization
-      ↓
-Model Input
-```
-
-### Main Operations
-
-* Grayscale conversion
-* Noise reduction
-* Background removal
-* Thresholding
-* Image resizing
-* Pixel normalization
-
-The objective is to create consistent input regardless of handwriting style or drawing position.
-
----
-
-# Phase 3 — Symbol Recognition 🧠
-
-In this phase, the model learns to recognize individual mathematical symbols.
-
-A deep-learning model is trained to classify handwritten input into its corresponding mathematical class.
-
-```text
-Handwritten Symbol
-        ↓
-Feature Extraction
-        ↓
-Deep Neural Network
-        ↓
-Classification
-        ↓
-Predicted Symbol
-```
-
-For example:
-
-```text
-Input → handwritten image of "7"
-Output → 7
-```
-
-or
-
-```text
-Input → handwritten image of "+"
-Output → +
-```
-
-### Model
-
-The recognition architecture is designed using **TensorFlow/Keras** and can be improved as the dataset grows.
-
----
-
-# Phase 4 — Feature Learning 🔍
-
-Instead of manually defining features, the neural network learns important visual characteristics directly from the training data.
-
-The model learns features such as:
-
-* Edges
-* Curves
-* Lines
-* Corners
-* Symbol structure
-* Spatial patterns
-* Handwriting variations
-
-This allows the system to recognize symbols even when different users write them differently.
-
----
-
-# Phase 5 — Mathematical Expression Reconstruction 🧮
-
-Recognizing individual symbols is only one part of the problem.
-
-MathInk.ai must also understand the **relationship and order between symbols**.
-
-For example, a handwritten expression:
-
-```text
-2x + 5 = 15
-```
-
-should not simply produce:
-
-```text
-2
-x
-+
-5
-=
-1
-5
-```
-
-Instead, the system reconstructs the complete expression:
-
-```text
-2x + 5 = 15
-```
-
-### Expression Pipeline
-
-```text
-Handwritten Equation
-        ↓
-Symbol Detection
-        ↓
-Symbol Classification
-        ↓
-Position Analysis
-        ↓
-Expression Ordering
-        ↓
-Mathematical Expression
-```
-
----
-
-# Phase 6 — Spatial & Structural Understanding 📐
-
-Mathematical expressions are different from normal text because **position matters**.
-
-For example:
-
-```text
- x²
-```
-
-is different from:
-
-```text
-2x
-```
-
-Similarly:
-
-```text
-  2
- ---
-  3
-```
-
-represents a fraction rather than a sequence of three characters.
-
-Therefore, MathInk.ai will incorporate spatial relationships such as:
-
-* Above / below
-* Left / right
-* Superscript
-* Subscript
-* Fraction structure
-* Parentheses
-* Root expressions
-
-This phase transforms symbol recognition into actual mathematical structure understanding.
-
----
-
-# Phase 7 — Mathematical Representation 🔢
-
-After reconstructing the expression, MathInk.ai converts the result into a machine-readable format.
-
-### Example
-
-Handwritten input:
-
-```text
-x² + 2x + 1 = 0
-```
-
-Possible structured representation:
-
-```text
-x^2 + 2*x + 1 = 0
-```
-
-or LaTeX:
-
-```latex
-x^2 + 2x + 1 = 0
-```
-
-This representation can then be passed to a mathematical solver.
-
----
-
-# Phase 8 — Mathematical Reasoning & Solving 🤖
-
-The recognized expression can be connected to a mathematical reasoning engine.
-
-```text
-Handwriting
-     ↓
-MathInk.ai
-     ↓
-Expression
-     ↓
-Mathematical Parser
-     ↓
-Solver / AI Reasoning
-     ↓
-Solution
-```
-
-For example:
-
-```text
-Input:
-2x + 5 = 15
-
-MathInk.ai:
-2x + 5 = 15
-
-Solver:
-x = 5
-```
-
-This allows the system to move beyond handwriting recognition toward **interactive mathematical assistance**.
-
----
-
-# Phase 9 — Real-Time Smart Board Integration 🖥️
-
-The final stage integrates MathInk.ai with the **AI Mathematical Smart Board V3**.
-
-The user can write directly on the digital board.
-
-```text
-Student Writes Equation
-          ↓
-      Live Capture
-          ↓
-     MathInk.ai
-          ↓
- Expression Recognition
-          ↓
- Mathematical Reasoning
-          ↓
-      AI Response
-```
-
-The objective is to make the interaction as natural as writing on a physical classroom board.
-
----
-
-# 🏗️ Overall Architecture
-
-```text
-                AI Mathematical Smart Board
-                           │
-                           ▼
-                   Handwritten Input
-                           │
-                           ▼
-                  Image Preprocessing
-                           │
-                           ▼
-                    Symbol Detection
-                           │
-                           ▼
-                   MathInk.ai Model
-                           │
-                           ▼
-                  Symbol Recognition
-                           │
-                           ▼
-             Spatial / Structural Analysis
-                           │
-                           ▼
-              Expression Reconstruction
-                           │
-                           ▼
-                LaTeX / Math Expression
-                           │
-                           ▼
-                Mathematical Reasoning
-                           │
-                           ▼
-                     Final Answer
-```
-
----
-
-# 🛠️ Technology Stack
-
-| Component                   | Technology             |
-| --------------------------- | ---------------------- |
-| Programming                 | Python                 |
-| Deep Learning               | TensorFlow / Keras     |
-| Computer Vision             | OpenCV                 |
-| Numerical Processing        | NumPy                  |
-| Data Processing             | Pandas                 |
-| Model Development           | Jupyter / Google Colab |
-| Mathematical Representation | LaTeX                  |
-| Deployment                  | TBD                    |
-
----
-
-# 📊 Model Development
-
-The model development process follows an iterative approach:
-
-```text
-Dataset
-   ↓
-Preprocessing
-   ↓
-Training
-   ↓
-Validation
-   ↓
-Evaluation
-   ↓
-Error Analysis
-   ↓
-Model Improvement
-   ↓
-Real-Time Testing
-```
-
-Each phase is evaluated before moving toward the final smart-board integration.
-
----
-
-# 🚧 Current Status
-
-**MathInk.ai is currently under active development.**
-
-### Completed / In Progress
-
-* [x] Project architecture
-* [x] Initial dataset preparation
-* [x] Preprocessing pipeline
-* [ ] Mathematical symbol classification
-* [ ] Expression reconstruction
-* [ ] Spatial relationship detection
-* [ ] LaTeX generation
-* [ ] Mathematical solver integration
-* [ ] Real-time smart-board integration
-* [ ] Model optimization
-
----
-
-# 🔮 Future Scope
-
-Future versions of MathInk.ai will focus on:
-
-* ✍️ More handwriting styles
-* 🧮 Complex mathematical expressions
-* 📐 Fractions, roots and matrices
-* 🔢 Superscript and subscript recognition
-* 📝 Automatic LaTeX generation
-* ⚡ Real-time inference
-* 👨‍🏫 Classroom-oriented interaction
-* 🤖 AI-powered step-by-step explanations
-* 📈 Continuous model improvement
-
----
-
-# 🌟 Vision
-
-MathInk.ai aims to create a bridge between **human mathematical handwriting and artificial intelligence**.
-
-Instead of forcing students to adapt to computers, the system allows computers to understand the way students naturally communicate mathematics — **through handwriting**.
-
-> **Write mathematics naturally. Let AI understand it.**
-
----
+* **Suyash Mathur** - [SuyashMathur-bit](https://github.com/SuyashMathur-bit)

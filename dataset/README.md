@@ -14,6 +14,8 @@ This folder contains the preprocessed CROHME dataset used for training and evalu
 
 ---
 
-### Kaggle Dataset Source
-You can also access or download this dataset directly on Kaggle:
+### Kaggle Dataset Download Link
+Due to GitHub's file size limits, the full 196 MB preprocessed dataset is hosted on Kaggle:
 👉 **[suyashma/math-expression1 on Kaggle](https://www.kaggle.com/datasets/suyashma/math-expression1)**
+
+Download `processed_crohme.pkl` from the Kaggle link and place it in this `dataset/` directory before running training.
